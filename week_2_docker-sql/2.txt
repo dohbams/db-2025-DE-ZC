@@ -1,0 +1,61 @@
+import pandas as pd
+from sqlalchemy import create_engine
+from time import time
+import argparse
+import os
+import requests
+
+def main(params):
+
+    user = params.user
+    password = params.password
+    host = params.host
+    port = params.port
+    db = params.db
+    table_name = params.table_name
+    url = params.url
+
+    parquet_name = 'output.parquet'
+
+    # download the PARQUET
+
+    os.system(f"wget {url} -O {parquet_name}")
+
+
+    # # URL of the file to download
+    # url = "https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2024-01.parquet"
+
+    # # Send a GET request to download the file
+    # response = requests.get(url)
+
+    # # Check if the request was successful
+    # if response.status_code == 200:
+    #     # Store the file content in a variable called `parquet_name`
+    #     parquet_name = response.content
+    #     print("File downloaded successfully and stored in the variable `parquet_name`.")
+    # else:
+    #     print(f"Failed to download the file. Status code: {response.status_code}")
+
+    #  create a postgres connection
+    engine =  create_engine('postgresql://{user}:{password}@{host}:{port}/{db}')
+
+    #  load the data
+    df = pd.read_parquet({parquet_name})
+
+    # Upload the full DataFrame at once to the db
+    df.to_sql(name={table_name}, con=engine, if_exists="append", index=False)
+    
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Ingest PARQUET into pg database')
+    
+    parser.add_argument('--user', help='username for postgres database')
+    parser.add_argument('--password', help='password for postgres database')
+    parser.add_argument('--host', help='host for postgres database')
+    parser.add_argument('--port', help='port for postgres database')
+    parser.add_argument('--db', help='database name for postgres database')
+    parser.add_argument('--table_name', help='table name where we will ingest data in postgres')      
+    parser.add_argument('--url', help='url of the PARQUET file')
+
+    args = parser.parse_args()
+    main(args)

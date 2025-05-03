@@ -1,0 +1,163 @@
+docker run -it \
+    -e POSTGRES_USER= "root" \
+    -e POSTGRES_PASSWORD= "root" \
+    -e POSTGRES_DB="ny_taxi_db" \
+    -v c:/workspaces/db-2025-DE-ZC/week_2_docker-sql/ny_taxi_pg_db
+    -p 5432:5432 \
+    postgres:13
+
+docker run -it \
+    -e POSTGRES_USER="root" \
+    -e POSTGRES_PASSWORD="root" \
+    -e POSTGRES_DB="ny_taxi_db" \
+    -v $(pwd)/week_2_docker-sql/ny_taxi_pg_db:/var/lib/postgresql/data \
+    postgres:13
+
+    docker run -it \
+    -e POSTGRES_USER="root" \
+    -e POSTGRES_PASSWORD="root" \
+    -e POSTGRES_DB="ny_taxi_db" \
+    -v ny_taxi_data:/var/lib/postgresql/data \
+    postgres:13
+
+
+
+
+
+    docker run -it \
+    -e POSTGRES_USER="root" \
+    -e POSTGRES_PASSWORD="root" \
+    -e POSTGRES_DB="ny_taxi_db" \
+    -v $(pwd)/ny_taxi_data:/var/lib/postgresql/data \
+    --user $(id -u):$(id -g) \
+    postgres:13
+
+-- this works to create a db
+
+docker run -it \
+    -e POSTGRES_USER="root" \
+    -e POSTGRES_PASSWORD="root" \
+    -e POSTGRES_DB="ny_taxi_db" \
+    -v ny_taxi_data:/var/lib/postgresql/data \
+    -p 5432:5432 \
+    postgres:13
+
+
+
+-- this is for connecting to the db
+
+pgcli -h localhost -p 5432 -u root -d ny_taxi_db
+
+
+
+-- this is for starting pgadmin 4 GUI
+
+docker run -it \
+    -e PGADMIN_DEFAULT_EMAIL="admin@admin.com" \
+    -e PGADMIN_DEFAULT_PASSWORD="root" \
+    -p 8080:80 \
+    dpage/pgadmin4
+
+
+-- this to create a docker network (docker network is used so that two containers can interact as long as
+they are in the same network)
+
+docker network create pg-network (pg-network is the name of the network)
+
+-- here we recreate our db container inside the network we created
+
+docker run -it \
+    -e POSTGRES_USER="root" \
+    -e POSTGRES_PASSWORD="root" \
+    -e POSTGRES_DB="ny_taxi_db" \
+    -v ny_taxi_data:/var/lib/postgresql/data \
+    -p 5432:5432 \
+    --network=pg-network \
+    --name pg-database \
+    postgres:13
+
+
+    -- here we now run pgadmin in the same network as wekll
+
+    docker run -it \
+    -e PGADMIN_DEFAULT_EMAIL="admin@admin.com" \
+    -e PGADMIN_DEFAULT_PASSWORD="root" \
+    -p 8080:80 \
+    --network=pg-network \
+    --name pgadmin \
+    dpage/pgadmin4
+
+
+    -- here we construct the way our python script will be executed
+
+
+### these guys didn't work
+URL = "https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2024-01.parquet"
+
+python ingest.py \
+    --user=root \
+    --password=root \
+    --host=localhost \
+    --port=5432 \
+    --db_name=ny_taxi_db \
+    --table_name=yellow_taxi_data \
+    --url=${URL}
+
+
+URL="https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2024-01.parquet"
+
+python ingest.py \
+    --user=root \
+    --password=root \
+    --host=localhost \
+    --port=5432 \
+    --db_name=ny_taxi_db \
+    --table_name=yellow_taxi_data \
+    --url="$URL"
+
+
+
+URL="https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2024-01.parquet"
+
+python ingest_data.py \
+    --user=root \
+    --password=root \
+    --host=localhost \
+    --port=5432 \
+    --db=ny_taxi_db \
+    --table_name=yellow_taxi_data \
+    --url="$URL"
+#####
+
+
+-- this works to ingest data using the ingest_data.py script
+
+URL="https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2024-01.parquet"
+
+python ingest_data.py \
+    --user=root \
+    --password=root \
+    --host=localhost \
+    --port=5432 \
+    --db=ny_taxi_db \
+    --table_name=yellow_taxi_data \
+    --url="$URL"
+
+-- we updated our dockerfile to make sure it runs our python script and we also installed some more dependencies like wget, sqlalchemy and psycopg2
+
+-- now we build the container using the docker file inside our directory
+docker build -t taxi_ingest:v001 .
+
+-- here we run the container and supply our parameters as set in ingest_data.py
+-- we make sure to run it in our created network so that it can interact with the existing db also change host to the name of the db container
+
+docker run -it \
+    --network=pg-network \
+    taxi_ingest:v001 \
+        --user=root \
+        --password=root \
+        --host=pg-database \
+        --port=5432 \
+        --db=ny_taxi_db \
+        --table_name=yellow_taxi_data \
+        --url="$URL"
