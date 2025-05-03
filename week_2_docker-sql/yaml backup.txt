@@ -1,0 +1,43 @@
+name: my_DE_ZC_project
+
+services:
+  pgdatabase:
+    image: postgres:15
+    container_name: pgdatabase
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD_FILE: /run/secrets/db_password
+      POSTGRES_DB: ny_taxi_db
+    secrets:
+      - db_password
+    volumes:
+      - ny_taxi_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U root"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com # email
+      PGADMIN_DEFAULT_PASSWORD_FILE: /run/secrets/pgadmin_password
+    secrets:
+      - pgadmin_password
+    ports:
+      - "8080:80"
+
+volumes:
+  ny_taxi_data:
+
+secrets:
+  db_password:
+    file: ./secrets/db_password.txt
+  pgadmin_password:
+    file: ./secrets/pgadmin_password.txt

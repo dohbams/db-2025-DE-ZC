@@ -1,0 +1,30 @@
+terraform {
+  required_providers {
+    google = {
+      source  = "hashicorp/google"
+      version = "6.26.0"
+    }
+  }
+}
+
+provider "google" {
+  project = "bigquery-portfolio"
+  region  = "europe-west1"
+}
+
+resource "google_storage_bucket" "tf-demo-bucket" {
+  name          = "bigquery-portfolio-tf-demo-bucket"
+  location      = "EU"
+  storage_class = "STANDARD"
+  force_destroy = true
+  public_access_prevention = "enforced"
+
+  lifecycle_rule {
+    condition {
+      age = 1
+    }
+    action {
+      type = "AbortIncompleteMultipartUpload"
+    }
+  }
+}

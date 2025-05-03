@@ -1,0 +1,114 @@
+fiest we wnt to GCP loggedd in and created a service account.
+this service account basically helps us to be able to run several GCP services like bigquery, cloud storage etc.
+created a terraform service account and added the needed roles based on the resources we want to manage using terraform.
+we also created credential keys (which will probably use in terraform) to authenicate the service account for managing the resources.
+this credential is saved as keys.json in the keys folder in our current directory (terraform-demo)
+
+
+we use this in our main.tf file to set up the provider. we're using ggoogle cloud here
+
+terraform {
+  required_providers {
+    google = {
+      source  = "hashicorp/google"
+      version = "6.26.0"
+    }
+  }
+}
+
+provider "google" {
+  # Configuration options
+  project = "bigquery-portfolio"
+  region  = "europe-west1"
+}
+
+for our credentials we use this bash command export GOOGLE_CREDENTIALS="keys/keys.json" so that we set the keys.json as an environment variable 
+to point to the Google Cloud service account key file. 
+
+we then use echo $GOOGLE_CREDENTIALS to confirm that the environment variable is set correctly.
+
+we use the command terraform init to initialize terraform
+
+
+export GOOGLE_CREDENTIALS="keys/keys.json"
+o	Verification:
+echo $GOOGLE_CREDENTIALS  # Should output the path
+
+## main.tf without variables 
+
+terraform {
+  required_providers {
+    google = {
+      source  = "hashicorp/google"
+      version = "6.26.0"
+    }
+  }
+}
+
+provider "google" {
+  # Configuration options
+  project = "bigquery-portfolio"
+  region  = "europe-west1"
+}
+
+resource "google_storage_bucket" "tf-demo-bucket" {
+  name                     = "bigquery-portfolio-tf-demo-bucket"
+  location                 = "EU"
+  storage_class            = "STANDARD"
+  force_destroy            = true
+  public_access_prevention = "enforced"
+
+  lifecycle_rule {
+    condition {
+      age = 1
+    }
+    action {
+      type = "AbortIncompleteMultipartUpload"
+    }
+  }
+}
+
+resource "google_bigquery_dataset" "tf_demo_dataset" {
+  dataset_id = "tf_demo_dataset"
+  location   = "EU"
+}
+
+
+#########
+
+terraform {
+  required_providers {
+    google = {
+      source  = "hashicorp/google"
+      version = "6.26.0"
+    }
+  }
+}
+
+provider "google" {
+  # Configuration options
+  project = var.project
+  region  = var.region
+}
+
+resource "google_storage_bucket" "tf-demo-bucket" {
+  name                     = "bigquery-portfolio-tf-demo-bucket"
+  location                 = "EU"
+  storage_class            = "STANDARD"
+  force_destroy            = true
+  public_access_prevention = "enforced"
+
+  lifecycle_rule {
+    condition {
+      age = 1
+    }
+    action {
+      type = "AbortIncompleteMultipartUpload"
+    }
+  }
+}
+
+resource "google_bigquery_dataset" "tf_demo_dataset" {
+  dataset_id = "tf_demo_dataset"
+  location   = var.location
+}
